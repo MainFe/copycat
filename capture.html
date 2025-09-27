@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>문장 복사기</title>
+  <style>
+    html, body {
+      background-color: transparent;
+    }
+    
+    body {
+      margin: 0;
+      background: rgba(0, 0, 0, 0.2); /* 반투명 */
+      border: 2px dashed #00ff00;
+      user-select: none;
+      overflow: hidden;
+      font-family: 'Malgun Gothic', sans-serif;
+    }
+    
+    .header {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      height: 40px;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 15px;
+      box-sizing: border-box;
+      cursor: move;
+      -webkit-app-region: drag;
+    }
+    
+    .title {
+      font-size: 16px;
+      font-weight: bold;
+      color: #333;
+    }
+    
+    .controls {
+      display: flex;
+      gap: 10px;
+      -webkit-app-region: no-drag;
+    }
+    
+    button {
+      background: #4CAF50;
+      border: none;
+      color: white;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: bold;
+      transition: background 0.3s ease;
+    }
+    
+    button:hover {
+      background: #45a049;
+    }
+    
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    
+    #text-display {
+      position: absolute;
+      top: 60px;
+      left: 0px;
+      right: 0px;
+      bottom: 0px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #000;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      padding: 15px;
+      font-family: 'Malgun Gothic', sans-serif;
+      font-size: 14px;
+      resize: none;
+      outline: none;
+      box-sizing: border-box;
+      line-height: 1.5;
+    }
+    
+    #drag-area {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      pointer-events: none;
+    }
+    
+  </style>
+</head>
+<body>
+  <div id="drag-area"></div>
+  
+  <div class="header">
+    <div class="title">🎯 문장 복사기</div>
+    <div class="controls">
+      <button id="capture-btn">캡처 (F1)</button>
+    </div>
+  </div>
+  
+  <textarea id="text-display"></textarea>
+  
+  <script>
+    let isDragging = false;
+    
+    // 헤더 드래그 이벤트
+    const header = document.querySelector('.header');
+    
+    header.addEventListener('mousedown', (e) => {
+      if (e.target.closest('.controls') || e.target.closest('.status-indicator')) {
+        return; // 버튼이나 상태 표시기 클릭 시 드래그 방지
+      }
+      
+      isDragging = true;
+      if (window.electronAPI) {
+        window.electronAPI.startDrag();
+      }
+    });
+    
+    document.addEventListener('mouseup', () => {
+      isDragging = false;
+    });
+    
+    // 캡처 버튼
+    document.getElementById('capture-btn').addEventListener('click', () => {
+      console.log('캡처 버튼 클릭 - F1 키를 눌러주세요');
+      document.getElementById('text-display').value = 'F1 키를 눌러 캡처를 시작하세요...';
+    });
+    
+    
+    // OCR 결과 수신
+    if (window.electronAPI) {
+      window.electronAPI.onOcrResult((result) => {
+        console.log('--- OCR 결과 ---');
+        console.log(result);
+        
+        const textarea = document.getElementById('text-display');
+        if (result && result.originalText) {
+          textarea.value = result.originalText;
+        } else {
+          textarea.value = '텍스트를 인식할 수 없습니다. 다시 시도해주세요.';
+        }
+      });
+    } else {
+      console.error('electronAPI 객체가 정의되지 않았습니다. preload.js 경로를 확인해주세요.');
+    }
+    
+    // textarea 지우기 메시지 수신
+    if (window.electronAPI) {
+      window.electronAPI.onClearTextarea(() => {
+        const textarea = document.getElementById('text-display');
+        textarea.value = '';
+      });
+    }
+    
+  </script>
+</body>
+</html>
